@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import functools
+import json
 import os
 import os.path as osp
 import re
+import subprocess
 import webbrowser
 
 import imgviz
@@ -1019,15 +1021,36 @@ class MainWindow(QtWidgets.QMainWindow):
         self._noSelectionSlot = False
         self.canvas.loadShapes(shapes, replace=replace)
 
-    def loadLabels(self, shapes):
+    def loadAutoLabels(self, command, filename):
+        # we expect the command to return JSON format shapes with
+        # 'label' 'points' 'shape_type' 'flags' 'group_id' and 'other_data'
+        if isinstance(command, str):
+            command = command.split(',')
+            command = [el.strip() for el in command]
+        #print("auto", type(command), command)
+        assert(isinstance(command, list))
+        subLabelCommand = subprocess.Popen(command + [filename], 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.STDOUT)
+        stdout, stderr = subLabelCommand.communicate()
+        try:
+            shapes = json.loads(stdout)
+            self.loadLabels(shapes, replace=False)
+        except Exception as e:
+            mb = QtWidgets.QMessageBox
+            msg = self.tr('Error loading auto labels, ') + self.tr(str(e))
+            mb.warning(self, self.tr('Attention'), msg, mb.Cancel)
+
+
+    def loadLabels(self, shapes, replace=True):
         s = []
-        for shape in shapes:
-            label = shape['label']
-            points = shape['points']
-            shape_type = shape['shape_type']
-            flags = shape['flags']
-            group_id = shape['group_id']
-            other_data = shape['other_data']
+        for shp in shapes:
+            label = shp['label']
+            points = shp['points']
+            shape_type = shp['shape_type']
+            flags = shp['flags']
+            group_id = shp['group_id']
+            other_data = shp['other_data']
 
             shape = Shape(
                 label=label,
@@ -1049,7 +1072,7 @@ class MainWindow(QtWidgets.QMainWindow):
             shape.other_data = other_data
 
             s.append(shape)
-        self.loadShapes(s)
+        self.loadShapes(s, replace=replace)
 
     def loadFlags(self, flags):
         self.flag_widget.clear()
@@ -1316,6 +1339,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.loadLabels(self.labelFile.shapes)
             if self.labelFile.flags is not None:
                 flags.update(self.labelFile.flags)
+        if self._config.get('auto_label_command', None):
+            self.loadAutoLabels(self._config['auto_label_command'], filename)
         self.loadFlags(flags)
         if self._config['keep_prev'] and self.noShapes():
             self.loadShapes(prev_shapes, replace=False)

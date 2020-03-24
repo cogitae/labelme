@@ -4,6 +4,7 @@ store_data: true
 keep_prev: false
 keep_prev_scale: false
 logger_level: info
+auto_label_command: null
 
 flags: null
 label_flags: null
