@@ -256,6 +256,14 @@ class MainWindow(QtWidgets.QMainWindow):
             checked=self._config['store_data'],
         )
 
+        useAutoLabel = action(
+            text='Use auto label',
+            slot=self.useAutoLabel,
+            tip='Use wizard to auto label',
+            checkable=False,
+            checked=self._config['auto_label'],
+        )
+
         close = action('&Close', self.closeFile, shortcuts['close'], 'close',
                        'Close current file')
 
@@ -322,7 +330,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         delete = action(self.tr('Delete Polygons'), self.deleteSelectedShape,
                         shortcuts['delete_polygon'], 'cancel',
-                        self.tr('Delete the selected polygons'), enabled=False)
+                        self.tr('Delete the selected polygons'), enabled=True)
         copy = action(self.tr('Duplicate Polygons'), self.copySelectedShape,
                       shortcuts['duplicate_polygon'], 'copy',
                       self.tr('Create a duplicate of the selected polygons'),
@@ -342,6 +350,7 @@ class MainWindow(QtWidgets.QMainWindow):
         removePoint = action(
             text='Remove Selected Point',
             slot=self.canvas.removeSelectedPoint,
+            shortcut=shortcuts['remove_selected_point'],
             icon='edit',
             tip='Remove selected point from polygon',
             enabled=False,
@@ -440,6 +449,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.actions = utils.struct(
             saveAuto=saveAuto,
             saveWithImageData=saveWithImageData,
+            useAutoLabel=useAutoLabel,
             changeOutputDir=changeOutputDir,
             save=save, saveAs=saveAs, open=open_, close=close,
             deleteFile=deleteFile,
@@ -527,6 +537,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 saveAuto,
                 changeOutputDir,
                 saveWithImageData,
+                useAutoLabel,
                 close,
                 deleteFile,
                 None,
@@ -959,7 +970,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.labelList.scrollToItem(item)
         self._noSelectionSlot = False
         n_selected = len(selected_shapes)
-        self.actions.delete.setEnabled(n_selected)
+        self.actions.delete.setEnabled(True)
         self.actions.copy.setEnabled(n_selected)
         self.actions.edit.setEnabled(n_selected == 1)
 
@@ -1339,8 +1350,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.loadLabels(self.labelFile.shapes)
             if self.labelFile.flags is not None:
                 flags.update(self.labelFile.flags)
-        if self._config.get('auto_label_command', None):
-            self.loadAutoLabels(self._config['auto_label_command'], filename)
+        if self._config.get('auto_label', False):
+            if self._config.get('auto_label_command', None):
+                self.loadAutoLabels(self._config['auto_label_command'], filename)
         self.loadFlags(flags)
         if self._config['keep_prev'] and self.noShapes():
             self.loadShapes(prev_shapes, replace=False)
@@ -1405,6 +1417,10 @@ class MainWindow(QtWidgets.QMainWindow):
     def enableSaveImageWithData(self, enabled):
         self._config['store_data'] = enabled
         self.actions.saveWithImageData.setChecked(enabled)
+
+    def useAutoLabel(self, enabled):
+        if self.filename:
+            self.loadAutoLabels(self._config['auto_label_command'], self.filename)
 
     def closeEvent(self, event):
         if not self.mayContinue():
@@ -1659,19 +1675,23 @@ class MainWindow(QtWidgets.QMainWindow):
         self._config['keep_prev'] = not self._config['keep_prev']
 
     def deleteSelectedShape(self):
-        yes, no = QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No
-        msg = self.tr(
-            'You are about to permanently delete {} polygons, '
-            'proceed anyway?'
-        ).format(len(self.canvas.selectedShapes))
-        if yes == QtWidgets.QMessageBox.warning(
-                self, self.tr('Attention'), msg,
-                yes | no):
-            self.remLabels(self.canvas.deleteSelected())
+        if len(self.canvas.selectedShapes) == 0:
+            self.canvas.removeSelectedPoint()
             self.setDirty()
-            if self.noShapes():
-                for action in self.actions.onShapesPresent:
-                    action.setEnabled(False)
+        else:
+            yes, no = QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No
+            msg = self.tr(
+                'You are about to permanently delete {} polygons, '
+                'proceed anyway?'
+            ).format(len(self.canvas.selectedShapes))
+            if yes == QtWidgets.QMessageBox.warning(
+                    self, self.tr('Attention'), msg,
+                    yes | no):
+                self.remLabels(self.canvas.deleteSelected())
+                self.setDirty()
+                if self.noShapes():
+                    for action in self.actions.onShapesPresent:
+                        action.setEnabled(False)
 
     def copyShape(self):
         self.canvas.endMove(copy=True)

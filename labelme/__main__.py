@@ -57,6 +57,13 @@ def main():
         default=argparse.SUPPRESS,
     )
     parser.add_argument(
+        '--auto-label',
+        dest='auto_label',
+        action='store_true',
+        help='Use wizard to auto label',
+        default=argparse.SUPPRESS,
+    )
+    parser.add_argument(
         '--autosave',
         dest='auto_save',
         action='store_true',
