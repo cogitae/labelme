@@ -5,6 +5,7 @@ from qtpy import QtWidgets
 from labelme import QT5
 from labelme.shape import Shape
 import labelme.utils
+from shapely.geometry import Polygon, MultiPolygon
 
 
 # TODO(unknown):
@@ -302,6 +303,33 @@ class Canvas(QtWidgets.QWidget):
         self.prevhVertex = self.hVertex = None
         self.hEdge = None
         self.movingShape = True  # Save changes
+
+    def smoothShape(self):
+        #import numpy as np
+        shape = self.prevhShape
+        if not shape:
+            return
+        softening_pixels = 3
+        #points = np.array([(pt.x(), pt.y()) for pt in shape.points])
+        points = [(pt.x(), pt.y()) for pt in shape.points]
+        polygon = Polygon(points)
+        polygon = polygon.buffer(softening_pixels).buffer(-softening_pixels)
+        shape.points = []
+        shape.setOpen()
+
+        if isinstance(polygon, MultiPolygon):
+            multipolygon = polygon
+            for polygon in multipolygon:
+                points = list(polygon.exterior.coords)
+        else:
+            points = list(polygon.exterior.coords)
+
+        for x, y in points:
+            shape.addPoint(QtCore.QPointF(x, y))
+        shape.close()
+
+        self.hEdge = None
+        self.prevhVertex = self.hVertex = None
 
     def mousePressEvent(self, ev):
         if QT5:

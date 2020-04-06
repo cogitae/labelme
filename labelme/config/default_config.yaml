@@ -82,6 +82,7 @@ shortcuts:
   create_linestrip: null
   edit_polygon: Ctrl+J
   delete_polygon: Delete
+  smooth_shape: Ctrl+!
   duplicate_polygon: Ctrl+D
   undo: Ctrl+Z
   undo_last_point: [Ctrl+Z, Backspace]

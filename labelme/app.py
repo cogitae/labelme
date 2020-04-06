@@ -328,6 +328,15 @@ class MainWindow(QtWidgets.QMainWindow):
                           self.tr('Move and edit the selected polygons'),
                           enabled=False)
 
+        smoothShape = action(
+            text='Smooth shape',
+            slot=self.canvas.smoothShape,
+            shortcut=shortcuts['smooth_shape'],
+            icon='edit',
+            tip='Smooth shape',
+            enabled=True,
+        )
+
         delete = action(self.tr('Delete Polygons'), self.deleteSelectedShape,
                         shortcuts['delete_polygon'], 'cancel',
                         self.tr('Delete the selected polygons'), enabled=True)
@@ -440,7 +449,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Lavel list context menu.
         labelMenu = QtWidgets.QMenu()
-        utils.addActions(labelMenu, (edit, delete))
+        utils.addActions(labelMenu, (edit, delete, smoothShape))
         self.labelList.setContextMenuPolicy(Qt.CustomContextMenu)
         self.labelList.customContextMenuRequested.connect(
             self.popLabelListMenu)
@@ -454,7 +463,7 @@ class MainWindow(QtWidgets.QMainWindow):
             save=save, saveAs=saveAs, open=open_, close=close,
             deleteFile=deleteFile,
             toggleKeepPrevMode=toggle_keep_prev_mode,
-            delete=delete, edit=edit, copy=copy,
+            delete=delete, smoothShape=smoothShape, edit=edit, copy=copy,
             undoLastPoint=undoLastPoint, undo=undo,
             addPointToEdge=addPointToEdge, removePoint=removePoint,
             createMode=createMode, editMode=editMode,
@@ -474,6 +483,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 edit,
                 copy,
                 delete,
+                smoothShape,
                 None,
                 undo,
                 undoLastPoint,
@@ -491,6 +501,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 createPointMode,
                 createLineStripMode,
                 editMode,
+                smoothShape,
                 edit,
                 copy,
                 delete,
@@ -594,6 +605,7 @@ class MainWindow(QtWidgets.QMainWindow):
             editMode,
             copy,
             delete,
+            smoothShape,
             undo,
             None,
             zoomIn,
@@ -803,6 +815,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.actions.undoLastPoint.setEnabled(drawing)
         self.actions.undo.setEnabled(not drawing)
         self.actions.delete.setEnabled(not drawing)
+        self.actions.smoothShape.setEnabled(True)
 
     def toggleDrawMode(self, edit=True, createMode='polygon'):
         self.canvas.setEditing(edit)
@@ -971,6 +984,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._noSelectionSlot = False
         n_selected = len(selected_shapes)
         self.actions.delete.setEnabled(True)
+        self.actions.smoothShape.setEnabled(True)
         self.actions.copy.setEnabled(n_selected)
         self.actions.edit.setEnabled(n_selected == 1)
 
